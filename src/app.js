@@ -1,24 +1,93 @@
 const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
 require('dotenv').config();
 const path = require('path');
+const mainRoutes = require('./routes/mainRoutes');
+const { Pool } = require('pg');
+
+// Add security-related middleware
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const sanitize = require('express-mongo-sanitize');
 
 const app = express();
 
-// Middleware for serving static files
-app.use(express.static(path.join(__dirname, '../public')));
+// Enhanced security middleware
+app.use(helmet());  // Adds various HTTP headers for security
+app.use(sanitize()); // Prevent NoSQL injection
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
 
-// Example API endpoint
-app.get('/api/data', (req, res) => {
-    res.json({ message: 'Welcome to Project E API!' });
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Parse JSON with size limits
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Routes
+app.use('/api', mainRoutes);
+
+// Database connection with SSL
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false // set to true in production with proper SSL cert
+    }
 });
 
-// Serve the main HTML file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+// Notify Project F (security events)
+const notifyProjectF = async (message, securityLevel = 'info') => {
+    try {
+        await axios.post('http://localhost:3006/api/security-events', {
+            message,
+            level: securityLevel,
+            source: 'PROJECT-Z',
+            timestamp: new Date().toISOString()
+        });
+        console.log(`Security event logged: ${message}`);
+    } catch (error) {
+        console.error(`Failed to log security event: ${error.message}`);
+    }
+};
+
+// Database connection with security logging
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('Database connection error:', err.stack);
+        notifyProjectF('Database connection failed - possible security concern', 'high');
+    } else {
+        console.log('Database connected successfully!');
+        notifyProjectF('Secure database connection established', 'info');
+        release();
+    }
 });
 
-// Start the server
-const PORT = process.env.PORT || 3005;
+// Start server with security notifications
+const PORT = process.env.PORT || 3007;  // Changed to 3007
 app.listen(PORT, () => {
-    console.log(`Project E is running on http://localhost:${PORT}`);
+    console.log(`PROJECT-Z is running on http://localhost:${PORT}`);
+    notifyProjectF('Security service initialized successfully');
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    notifyProjectF(`Security error occurred: ${err.message}`, 'high');
+    res.status(500).json({ 
+        error: 'Internal server error',
+        requestId: req.id // for tracking purposes
+    });
 });
