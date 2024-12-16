@@ -1,0 +1,115 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #20232A;
+  color: #FFFFFA;
+}
+
+/* Header styles */
+header {
+  background-color: #7E8D9B;
+  color: #4A4882;
+  padding: 1rem;
+  
+  text-align: left;
+}
+
+h1 {
+  font-weight: lighter;
+}
+
+.nav-menu {
+  margin-top: .5em;
+  padding: 1rem;
+  background-color: #637482;
+}
+
+.nav-menu ul {
+  list-style: none;
+  display: flex;
+  justify-content: left;
+  gap: 2rem;
+}
+
+.nav-menu a {
+  color: #AAB7C4;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-menu a:hover {
+  border-bottom: 2px solid #829D9E;
+}
+
+/* Main content styles */
+main {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* Grid system */
+.grid-container {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;  /* Mobile first - single column */
+  margin-bottom: 2rem;
+}
+
+/* Tablet breakpoint */
+@media (min-width: 768px) {
+  .grid-container {
+      grid-template-columns: repeat(2, 1fr);  /* 2 columns for tablets */
+  }
+}
+
+/* Desktop breakpoint */
+@media (min-width: 1024px) {
+  .grid-container {
+      grid-template-columns: repeat(3, 1fr);  /* 3 columns for desktop */
+  }
+}
+
+.grid-item {
+  background-color: #444340;
+  padding: 2rem;
+  min-height: 200px;
+  transition: transform 0.3s ease;
+}
+
+.grid-item:hover {
+  transform: translateY(-5px);
+}
+
+/* Footer styles */
+footer {
+  background-color: #7E8D9B;
+  color: #4A4882;
+  font-size: 1em;
+  padding: .7rem;
+  text-align: right;
+  position: sticky;
+  bottom: 0;
+}
+
+/* Loading indicator */
+.loading {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  z-index: 1000;
+}
