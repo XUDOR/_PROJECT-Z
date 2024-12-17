@@ -9,13 +9,12 @@ const { Pool } = require('pg');
 // Add security-related middleware
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const sanitize = require('express-mongo-sanitize');
+
 
 const app = express();
 
 // Enhanced security middleware
 app.use(helmet());  // Adds various HTTP headers for security
-app.use(sanitize()); // Prevent NoSQL injection
 app.use(cors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
     methods: ['GET', 'POST'],
