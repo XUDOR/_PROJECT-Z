@@ -77,6 +77,13 @@ router.get('/api/security/events', async (req, res) => {
     }
 });
 
+
+
+
+
+
+
+
 // Log new security event
 router.post('/api/security/events', async (req, res) => {
     const { eventType, details, severity } = req.body;
