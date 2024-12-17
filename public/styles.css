@@ -50,6 +50,15 @@ h1 {
   border-bottom: 2px solid #829D9E;
 }
 
+.SSL-LIGHT {
+  border: 1px solid #20232A;
+  color: #20232A;
+  width: 50px;
+}
+
+
+
+
 /* Main content styles */
 main {
   flex: 1;
