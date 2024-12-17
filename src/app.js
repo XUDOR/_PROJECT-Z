@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid'); // Import UUID for unique identifiers
 require('dotenv').config();
 const path = require('path');
 const mainRoutes = require('./routes/mainRoutes');
@@ -9,7 +10,6 @@ const { Pool } = require('pg');
 // Add security-related middleware
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-
 
 const app = express();
 
@@ -45,17 +45,19 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
-
-// Notify Project F (security events)
+// Notify Project F (security events) with differentiators
 const notifyProjectF = async (message, securityLevel = 'info') => {
     try {
-        await axios.post('http://localhost:3006/api/security-events', {
+        const notification = {
+            id: uuidv4(), // Unique identifier
             message,
             level: securityLevel,
-            source: 'PROJECT-Z',
+            source: process.env.INSTANCE_NAME || 'PROJECT-Z', // Instance name or default
             timestamp: new Date().toISOString()
-        });
-        console.log(`Security event logged: ${message}`);
+        };
+
+        await axios.post('http://localhost:3006/api/security-events', notification);
+        console.log(`Security event logged: ${notification.id} - ${message} (Source: ${notification.source})`);
     } catch (error) {
         console.error(`Failed to log security event: ${error.message}`);
     }
@@ -73,6 +75,20 @@ pool.connect((err, client, release) => {
     }
 });
 
+// Connectivity check function
+const checkServerConnectivity = async (serverName, serverUrl) => {
+    try {
+        await axios.get(serverUrl);
+        const message = `Successfully connected to ${serverName} at ${serverUrl}`;
+        console.log(message);
+        await notifyProjectF(message, 'info');
+    } catch (error) {
+        const errorMessage = `Failed to connect to ${serverName} at ${serverUrl}: ${error.message}`;
+        console.error(errorMessage);
+        await notifyProjectF(errorMessage, 'high');
+    }
+};
+
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -86,12 +102,16 @@ app.use((req, res) => {
     res.status(404).send('Resource not found.');
 });
 
-
-// Start server with security notifications
-const PORT = process.env.PORT || 3007;  // Changed to 3007
+// Start server with security notifications and connectivity checks
+const PORT = process.env.PORT || 3007;
 app.listen(PORT, () => {
     console.log(`PROJECT-Z is running on http://localhost:${PORT}`);
     notifyProjectF('Security service initialized successfully');
+
+    // Perform connectivity checks
+    checkServerConnectivity('Project A', 'http://localhost:3001/api/health');
+    checkServerConnectivity('Project B', 'http://localhost:3002/api/health');
+    checkServerConnectivity('Project D', 'http://localhost:3004/api/health');
 });
 
 // Global error handler
