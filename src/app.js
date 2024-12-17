@@ -73,6 +73,20 @@ pool.connect((err, client, release) => {
     }
 });
 
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve the root index.html file
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Fallback for undefined routes
+app.use((req, res) => {
+    res.status(404).send('Resource not found.');
+});
+
+
 // Start server with security notifications
 const PORT = process.env.PORT || 3007;  // Changed to 3007
 app.listen(PORT, () => {
