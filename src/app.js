@@ -45,21 +45,22 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
-// Notify Project F (security events) with differentiators
-const notifyProjectF = async (message, securityLevel = 'info') => {
+
+// Notify Project F function
+const notifyProjectF = async (message, level = 'info') => {
     try {
         const notification = {
-            id: uuidv4(), // Unique identifier
+            id: uuidv4(),
             message,
-            level: securityLevel,
-            source: process.env.INSTANCE_NAME || 'PROJECT-Z', // Instance name or default
+            level,
+            source: process.env.INSTANCE_NAME || 'PROJECT-Z',
             timestamp: new Date().toISOString()
         };
 
-        await axios.post('http://localhost:3006/api/security-events', notification);
-        console.log(`Security event logged: ${notification.id} - ${message} (Source: ${notification.source})`);
+        await axios.post('http://localhost:3006/api/notifications', notification);
+        console.log(`Notification sent to Project F: ${notification.message}`);
     } catch (error) {
-        console.error(`Failed to log security event: ${error.message}`);
+        console.error(`Failed to notify Project F: ${error.message}`);
     }
 };
 
@@ -106,6 +107,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3007;
 app.listen(PORT, () => {
     console.log(`PROJECT-Z is running on http://localhost:${PORT}`);
+    notifyProjectF('Project Z is up and running');
     notifyProjectF('Security service initialized successfully');
 
     // Perform connectivity checks
