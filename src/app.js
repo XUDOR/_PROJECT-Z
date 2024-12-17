@@ -42,10 +42,9 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    ssl: {
-        rejectUnauthorized: false // set to true in production with proper SSL cert
-    }
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
+
 
 // Notify Project F (security events)
 const notifyProjectF = async (message, securityLevel = 'info') => {
