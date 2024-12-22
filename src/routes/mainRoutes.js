@@ -1,10 +1,8 @@
 const express = require('express');
-const { Pool } = require('pg');
-const axios = require('axios');
-const { PROJECT_F_NOTIFICATIONS_URL } = require('../../config/const');
-require('dotenv').config();
-
+const pool = require('../db/db'); // Modularized database connection
+const { logSecurityEvent, notifyProjectF } = require('../utils/securityUtils'); // Utility functions
 const router = express.Router();
+require('dotenv').config();
 
 // ------------------- API STATUS ROUTE ------------------- //
 router.get('/api/security/status', (req, res) => {
@@ -12,77 +10,22 @@ router.get('/api/security/status', (req, res) => {
         status: 'active',
         version: '1.0',
         message: 'Security Service Z is operational',
-        lastCheck: new Date().toISOString()
+        lastCheck: new Date().toISOString(),
     });
 });
 
-// ---------------- DATABASE CONNECTION ---------------- //
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-    ssl: {
-        rejectUnauthorized: false // Enable in production with proper cert
-    }
-});
-
-// ---------------- SECURITY LOGGING & NOTIFICATIONS ---------------- //
-async function logSecurityEvent(eventType, details, severity = 'info') {
-    try {
-        const query = `
-            INSERT INTO security_events (event_type, details, severity, timestamp)
-            VALUES ($1, $2, $3, NOW())
-            RETURNING *;
-        `;
-        const result = await pool.query(query, [eventType, details, severity]);
-        
-        // Notify Project F of security event
-        await notifyProjectF({
-            type: eventType,
-            details: details,
-            severity: severity,
-            timestamp: new Date().toISOString()
-        });
-        
-        return result.rows[0];
-    } catch (error) {
-        console.error('Error logging security event:', error);
-    }
-}
-
-async function notifyProjectF(securityEvent) {
-    try {
-        await axios.post(PROJECT_F_NOTIFICATIONS_URL, {
-            source: 'PROJECT-Z',
-            ...securityEvent
-        });
-    } catch (error) {
-        console.error('Failed to notify Project F:', error.message);
-    }
-}
-
 // ---------------- SECURITY EVENTS ROUTES ---------------- //
-// Get security events
+
+// Fetch security events
 router.get('/api/security/events', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM security_events ORDER BY timestamp DESC LIMIT 100'
-        );
+        const result = await pool.query('SELECT * FROM security_events ORDER BY timestamp DESC LIMIT 100');
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching security events:', error);
         res.status(500).json({ error: 'Failed to fetch security events' });
     }
 });
-
-
-
-
-
-
-
 
 // Log new security event
 router.post('/api/security/events', async (req, res) => {
@@ -102,8 +45,14 @@ router.post('/api/security/events', async (req, res) => {
 });
 
 // ---------------- SECURITY ALERTS ROUTES ---------------- //
+
+// Log security alerts and notify Project F
 router.post('/api/security/alerts', async (req, res) => {
     const { alertType, message, severity, sourceIp } = req.body;
+
+    if (!alertType || !message) {
+        return res.status(400).json({ error: 'Alert type and message are required.' });
+    }
 
     try {
         const query = `
@@ -112,40 +61,48 @@ router.post('/api/security/alerts', async (req, res) => {
             RETURNING *;
         `;
         const result = await pool.query(query, [alertType, message, severity, sourceIp]);
-        
-        // Log high severity alerts as security events
+
+        // Notify Project F and escalate high-severity alerts
         if (severity === 'high') {
             await logSecurityEvent('HIGH_SEVERITY_ALERT', message, 'critical');
         }
+        await notifyProjectF({
+            type: alertType,
+            details: message,
+            severity,
+            sourceIp,
+            timestamp: new Date().toISOString(),
+        });
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error('Error creating security alert:', error);
-        res.status(500).json({ error: 'Failed to create security alert' });
+        console.error('Error logging security alert:', error);
+        res.status(500).json({ error: 'Failed to log security alert' });
     }
 });
 
 // ---------------- SYSTEM HEALTH CHECK ---------------- //
+
+// Check health of the security service
 router.get('/api/security/health', async (req, res) => {
     try {
         // Check database connection
         await pool.query('SELECT NOW()');
-        
-        // Add other security-related health checks here
-        
+
+        // Add other health checks as needed
         res.json({
             status: 'healthy',
             timestamp: new Date().toISOString(),
             services: {
                 database: 'operational',
-                notifications: 'active'
-            }
+                notifications: 'active',
+            },
         });
     } catch (error) {
         console.error('Health check failed:', error);
         res.status(500).json({
             status: 'unhealthy',
-            error: error.message
+            error: error.message,
         });
     }
 });
