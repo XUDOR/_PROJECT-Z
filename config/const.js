@@ -10,7 +10,8 @@ module.exports = {
     PROJECT_C_URL: `${PROTOCOL}://${BASE_HOST}:3003`,
     PROJECT_D_URL: `${PROTOCOL}://${BASE_HOST}:3004`,
     PROJECT_E_URL: `${PROTOCOL}://${BASE_HOST}:3005`,
-    PROJECT_F_URL: `${PROTOCOL}://${BASE_HOST}:3006`,
+    PROJECT_F_NOTIFICATIONS_URL: `${PROTOCOL}://${BASE_HOST}:3006/api/notifications`,
+    PROJECT_F_MESSAGES_URL: `${PROTOCOL}://${BASE_HOST}:3006/api/messages`,
     PROJECT_X_URL: `${PROTOCOL}://${BASE_HOST}:3010`,
 
     // Project F Communication (Main Messaging Hub)
