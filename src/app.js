@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid'); // Import UUID for unique identifiers
-require('dotenv').config();
 const path = require('path');
 const mainRoutes = require('./routes/mainRoutes');
 const { Pool } = require('pg');
