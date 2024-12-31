@@ -12,37 +12,122 @@
         <h1>_PROJECT-Z | Security</h1>
         <nav class="nav-menu">
             <ul>
-                <li><a href="#" data-section="Data Section 1">Data Section 1</a></li>
-                <li><a href="#" data-section="Data Section 2">Data Section 2</a></li>
-                <li><a href="#" data-section="Data Section 3">Data Section 3</a></li>
+                <li><a href="#" data-section="security-dashboard">Security Dashboard</a></li>
+                <li><a href="#" data-section="auth-monitoring">Auth Monitoring</a></li>
+                <li><a href="#" data-section="system-status">System Status</a></li>
+                <!-- System Status Indicators -->
+                <div class="system-status">
+                    <div class="ssl-status">SSL Status: <span id="ssl-indicator">Not Secure</span></div>
+                    <div class="api-status">API Status: <span id="api-health-indicator">Checking...</span></div>
+                </div>
             </ul>
-            <div class="ssl-status">SSL Status: <span id="ssl-indicator">Not Secure</span></div>
         </nav>
     </header>
 
-    <main>
-        <div class="grid-container">
-            <div class="grid-item">
-                <h2>Status</h2>
-                
+    <main class="grid-container">
+        <!-- Section 1: Security Events -->
+        <div class="grid-item" id="security-events-section">
+            <h2>Security Events</h2>
+            <div class="control-panel">
+                <div class="status-indicators">
+                    <span class="event-count">
+                        Total Events: <span id="event-count">0</span>
+                    </span>
+                    <span class="severity-high">
+                        High Priority: <span id="high-priority-count">0</span>
+                    </span>
+                </div>
+                <div class="refresh-controls">
+                    <select id="event-filter" class="event-filter">
+                        <option value="all">All Events</option>
+                        <option value="high">High Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+                    <div id="refresh-security-events" class="Button-Refresh">Refresh Events</div>
+                </div>
             </div>
-            <div class="grid-item">
-                <h2>Section 2</h2>
-                
-            </div>
-            <div class="grid-item">
-                <h2>Section 3</h2>
-                
+            <div class="DBContents" id="security-events-log">
+                No events yet. Click "Refresh Events" to load data.
             </div>
         </div>
+        
+        <!-- Section 2: Authentication Logs -->
+        <div class="grid-item" id="auth-logs-section">
+            <h2>Authentication Logs</h2>
+            <div class="control-panel">
+                <div class="status-indicators">
+                    <span class="auth-success">Success: <span id="auth-success-count">0</span></span>
+                    <span class="auth-failure">Failed: <span id="auth-failure-count">0</span></span>
+                </div>
+                <div class="refresh-controls">
+                    <select id="auth-filter" class="auth-filter">
+                        <option value="all">All Attempts</option>
+                        <option value="success">Successful</option>
+                        <option value="failure">Failed</option>
+                    </select>
+                    <div id="refresh-auth-logs" class="Button-Refresh">Refresh Logs</div>
+                </div>
+            </div>
+            <div class="DBContents" id="auth-logs-log">
+                No logs yet. Click "Refresh Logs" to load data.
+            </div>
+        </div>
+        
+        <!-- Section 3: Suspicious Activities -->
+        <div class="grid-item" id="suspicious-activities-section">
+            <h2>Suspicious Activities</h2>
+            <div class="control-panel">
+                <div class="status-indicators">
+                    <span class="threat-level">Threat Level: <span id="current-threat-level">Low</span></span>
+                    <span class="active-threats">Active Threats: <span id="active-threats-count">0</span></span>
+                </div>
+                <div class="refresh-controls">
+                    <select id="threat-filter" class="threat-filter">
+                        <option value="all">All Activities</option>
+                        <option value="critical">Critical</option>
+                        <option value="warning">Warning</option>
+                        <option value="suspicious">Suspicious</option>
+                    </select>
+                    <div id="refresh-suspicious-activities" class="Button-Refresh">Refresh Activities</div>
+                </div>
+            </div>
+            <div class="DBContents" id="suspicious-activities-log">
+                No activities yet. Click "Refresh Activities" to load data.
+            </div>
+        </div>
+
+        <!-- Section 4: System Status -->
+        <div class="grid-item" id="system-status-section">
+            <h2>System Status</h2>
+            <div class="control-panel">
+                <div class="status-indicators">
+                    <span class="service-status">
+                        Services Online: <span id="services-online-count">0/0</span>
+                    </span>
+                </div>
+                <div id="refresh-system-status" class="Button-Refresh">Refresh Status</div>
+            </div>
+            <div class="DBContents" id="system-status-log">
+                <div id="service-status-list">
+                    Checking service status...
+                </div>
+            </div>
+        </div>
+        
     </main>
 
     <footer>
         <p>&copy; 2024 _PROJECT-Z | SECURITY. All rights reserved.</p>
+        <div class="system-info">
+            <span id="last-updated">Last Updated: Never</span>
+            <span id="active-connections">Active Connections: 0</span>
+        </div>
     </footer>
 
     <div class="loading">Loading...</div>
     
+    <!-- Main JavaScript for Security Monitoring -->
     <script src="js/main.js"></script>
 </body>
 </html>

@@ -1,4 +1,6 @@
-/* Reset and base styles */
+/* =============================== */
+/* Reset and Base Styles */
+/* =============================== */
 * {
   margin: 0;
   padding: 0;
@@ -14,12 +16,13 @@ body {
   color: #FFFFFA;
 }
 
-/* Header styles */
+/* =============================== */
+/* Header Styles */
+/* =============================== */
 header {
   background-color: #8A9EA0;
   color: #CADBDA;
   padding: 1rem;
-  
   text-align: left;
 }
 
@@ -27,8 +30,9 @@ h1 {
   font-weight: lighter;
 }
 
+/* Navigation Menu */
 .nav-menu {
-  margin-top: .5em;
+  margin-top: 0.5em;
   padding: 1rem;
   background-color: #C5D8D6;
 }
@@ -50,6 +54,7 @@ h1 {
   border-bottom: 2px solid #829D9E;
 }
 
+/* SSL Status Indicator */
 .ssl-status {
   margin-top: 1rem;
   color: #617068;
@@ -58,37 +63,43 @@ h1 {
 
 .ssl-status span {
   font-weight: bold;
-  color: #FF4D4D; /* Red for 'Not Secure' status */
 }
 
+#ssl-indicator.secure {
+  color: #4CAF50;
+}
 
+#ssl-indicator.not-secure {
+  color: #FF4D4D;
+}
 
-
-/* Main content styles */
+/* =============================== */
+/* Main Content Styles */
+/* =============================== */
 main {
   flex: 1;
   padding: 2rem;
 }
 
-/* Grid system */
+/* =============================== */
+/* Grid System */
+/* =============================== */
 .grid-container {
   display: grid;
   gap: 2rem;
-  grid-template-columns: 1fr;  /* Mobile first - single column */
+  grid-template-columns: 1fr;
   margin-bottom: 2rem;
 }
 
-/* Tablet breakpoint */
 @media (min-width: 768px) {
   .grid-container {
-      grid-template-columns: repeat(2, 1fr);  /* 2 columns for tablets */
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Desktop breakpoint */
 @media (min-width: 1024px) {
   .grid-container {
-      grid-template-columns: repeat(3, 1fr);  /* 3 columns for desktop */
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -96,23 +107,222 @@ main {
   background-color: #444340;
   padding: 2rem;
   min-height: 200px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.3s ease;
+}
+
+/* =============================== */
+/* Enhanced Button Styles */
+/* =============================== */
+.Button-Refresh {
+  padding: 5px 10px;
+  margin: 3px;
+  border: 2px solid #8A9EA0;
+  background-color: transparent;
+  color: #8A9EA0;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+
+.Button-Refresh:hover {
+  background-color: #8A9EA0;
+  color: #20232A;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Severity-based button styles */
+.Button-Refresh[data-severity="low"] {
+  border-color: #8A9EA0;
+  color: #8A9EA0;
+}
+
+.Button-Refresh[data-severity="medium"] {
+  border-color: #F49B0C;
+  color: #F49B0C;
+}
+
+.Button-Refresh[data-severity="high"] {
+  border-color: #E56161;
+  color: #E56161;
+}
+
+.Button-Refresh[data-severity="critical"] {
+  border-color: #FF4D4D;
+  color: #FF4D4D;
+  animation: pulse 2s infinite;
+}
+
+/* Button hover states for each severity */
+.Button-Refresh[data-severity="low"]:hover {
+  background-color: #8A9EA0;
+  color: #20232A;
+}
+
+.Button-Refresh[data-severity="medium"]:hover {
+  background-color: #F49B0C;
+  color: #20232A;
+}
+
+.Button-Refresh[data-severity="high"]:hover {
+  background-color: #E56161;
+  color: #20232A;
+}
+
+.Button-Refresh[data-severity="critical"]:hover {
+  background-color: #FF4D4D;
+  color: #20232A;
+}
+
+/* =============================== */
+/* Log Content Styles */
+/* =============================== */
+.DBContents {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #2E2E2E;
+  border-radius: 5px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.bundle-row {
+  background-color: #3A3A3A;
+  border: 1px solid #8A9EA0;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  padding: 0.8rem;
+}
+
+.bundle-content {
+  color: #CADBDA;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.timestamp-label {
+  color: #617068;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.timestamp-value {
+  color: #8A9EA0;
+  margin-left: 0.3rem;
+}
+
+/* =============================== */
+/* Control Panel Styles */
+/* =============================== */
+.control-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  background-color: #3A3A3A;
+  padding: 0.8rem;
+  border-radius: 4px;
+}
+
+.status-indicators {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9em;
+}
+
+.refresh-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* =============================== */
+/* Filter Select Styles */
+/* =============================== */
+.event-filter,
+.auth-filter,
+.threat-filter {
+  padding: 4px 8px;
+  background-color: #2E2E2E;
+  border: 1px solid #8A9EA0;
+  color: #CADBDA;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* =============================== */
+/* Status Indicator Colors */
+/* =============================== */
+.event-count { color: #CADBDA; }
+.severity-high { color: #FF4D4D; }
+.auth-success { color: #4CAF50; }
+.auth-failure { color: #FF4D4D; }
+.threat-level { color: #F49B0C; }
+
+/* =============================== */
+/* System Status Section */
+/* =============================== */
+.system-status {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+  padding-right: 1rem;
+}
+
+.api-status {
+  color: #617068;
+}
+
+#service-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid #8A9EA0;
+  color: #CADBDA;
+}
+
+/* =============================== */
+/* Enhanced Footer Info */
+/* =============================== */
+.system-info {
+  display: flex;
+  gap: 2rem;
+  font-size: 0.8em;
+  padding-right: 1rem;
+}
+
+#last-updated,
+#active-connections {
+  color: #617068;
 }
 
 
 
-/* Footer styles */
+/* =============================== */
+/* Footer Styles */
+/* =============================== */
 footer {
   background-color: #8A9EA0;
   color: #CADBDA;
-  font-size: 1em;
-  padding: .7rem;
+  padding: 0.7rem;
   text-align: right;
   position: sticky;
   bottom: 0;
 }
 
-/* Loading indicator */
+/* =============================== */
+/* Loading Indicator */
+/* =============================== */
 .loading {
   display: none;
   position: fixed;
@@ -124,4 +334,33 @@ footer {
   padding: 1rem 2rem;
   border-radius: 4px;
   z-index: 1000;
+}
+
+/* =============================== */
+/* Animations */
+/* =============================== */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* =============================== */
+/* Scrollbar Styling */
+/* =============================== */
+.DBContents::-webkit-scrollbar {
+  width: 8px;
+}
+
+.DBContents::-webkit-scrollbar-track {
+  background: #2E2E2E;
+}
+
+.DBContents::-webkit-scrollbar-thumb {
+  background: #8A9EA0;
+  border-radius: 4px;
+}
+
+.DBContents::-webkit-scrollbar-thumb:hover {
+  background: #617068;
 }
