@@ -2,8 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../db/db'); // <-- Adjust path if needed
+const axios = require('axios');
+const pool = require('../db/db');
 const { logSecurityEvent, notifyProjectF } = require('../utils/securityUtils');
+
 const router = express.Router();
 
 // ===============================
@@ -21,10 +23,8 @@ router.post('/auth/signup', async (req, res) => {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert into user_auth table
         const query = `
             INSERT INTO user_auth (username, email, password_hash, salt, account_type)
             VALUES ($1, $2, $3, $4, $5)
@@ -32,7 +32,6 @@ router.post('/auth/signup', async (req, res) => {
         `;
         const result = await pool.query(query, [username, email, hashedPassword, '', accountType]);
 
-        // Log security event
         await logSecurityEvent('USER_SIGNUP', { username, email }, 'info');
 
         res.status(201).json(result.rows[0]);
@@ -55,26 +54,22 @@ router.post('/auth/login', async (req, res) => {
 
         console.log('Login attempt for email:', email);
 
-        // Fetch user by email
         const user = await pool.query(
             'SELECT * FROM user_auth WHERE email = $1',
             [email]
         );
 
-        // If user not found
         if (user.rows.length === 0) {
             console.log('No user found for email:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Compare provided password with stored hash
         const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
         if (!validPassword) {
             console.log('Invalid password for user:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Create JWT token
         const token = jwt.sign(
             {
                 id: user.rows[0].id,
@@ -84,9 +79,9 @@ router.post('/auth/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
+
         console.log('Generated JWT:', token);
 
-        // Notify Project F of successful login
         await notifyProjectF({
             message: `Login successful for user ${user.rows[0].username}`,
             level: 'info',
@@ -94,7 +89,6 @@ router.post('/auth/login', async (req, res) => {
             timestamp: new Date().toISOString(),
         });
 
-        // Return token and user data
         res.json({ token, user: user.rows[0] });
     } catch (error) {
         console.error('Login error:', error);
@@ -170,12 +164,10 @@ router.post('/security/alerts', async (req, res) => {
         `;
         const result = await pool.query(query, [alertType, message, severity, sourceIp]);
 
-        // If severity is high, log a critical event
         if (severity === 'high') {
             await logSecurityEvent('HIGH_SEVERITY_ALERT', message, 'critical');
         }
 
-        // Notify Project F
         await notifyProjectF({
             type: alertType,
             details: message,
@@ -200,9 +192,7 @@ router.post('/security/alerts', async (req, res) => {
  */
 router.get('/health', async (req, res) => {
     try {
-        // Simple DB check
         await pool.query('SELECT NOW()');
-
         res.json({
             status: 'healthy',
             timestamp: new Date().toISOString(),
@@ -222,12 +212,11 @@ router.get('/health', async (req, res) => {
 
 // ===============================
 // AUTH LOGS & SUSPICIOUS ACTIVITIES
-// (Updated endpoints to match main.js calls)
 // ===============================
 
 /**
  * Fetch recent authentication logs (limit 100).
- * NOTE: You must have a table named 'auth_logs' or adjust this query.
+ * NOTE: Table must exist in the DB with name 'auth_logs'.
  */
 router.get('/security/auth-logs', async (req, res) => {
     try {
@@ -243,7 +232,7 @@ router.get('/security/auth-logs', async (req, res) => {
 
 /**
  * Fetch recent suspicious activities (limit 100).
- * NOTE: You must have a table named 'suspicious_activities' or adjust this query.
+ * NOTE: Table must exist in the DB with name 'suspicious_activities'.
  */
 router.get('/security/suspicious-activities', async (req, res) => {
     try {
@@ -254,6 +243,40 @@ router.get('/security/suspicious-activities', async (req, res) => {
     } catch (error) {
         console.error('Error fetching suspicious activities:', error);
         res.status(500).json({ error: 'Failed to fetch suspicious activities' });
+    }
+});
+
+// ===============================
+// NEW: /api/notify ROUTE
+// FORWARDING TO PROJECT F (IF DESIRED)
+// ===============================
+const PROJECT_F_URL = process.env.PROJECT_F_URL || 'http://localhost:3006';
+
+router.post('/api/notify', async (req, res) => {
+    try {
+        const { message, level, source, timestamp } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required.' });
+        }
+
+        // Forward to Project F
+        const axiosResponse = await axios.post(`${PROJECT_F_URL}/api/notify`, {
+            message,
+            level: level || 'info',
+            source: source || 'Project Z',
+            timestamp: timestamp || new Date().toISOString(),
+        });
+
+        console.log('Forwarded notification to Project F:', axiosResponse.data);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Notification handled by Project Z and forwarded to Project F.',
+        });
+    } catch (error) {
+        console.error('Error in /api/notify route:', error.message);
+        return res.status(500).json({ error: 'Failed to process notification.' });
     }
 });
 
