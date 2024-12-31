@@ -1,7 +1,7 @@
 {
   "name": "project-Z",
   "version": "1.0.0",
-  "description": "MICRO SERVICE - TEST ENVIRONMENT 5",
+  "description": "MICRO SERVICE - TEST ENVIRONMENT 7",
   "main": "app.js",
   "scripts": {
     "start": "node src/app.js",
