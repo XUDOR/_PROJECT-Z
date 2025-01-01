@@ -1,19 +1,23 @@
+// mainRoutes.js
+
 require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const pool = require('../db/db');
 const { logSecurityEvent, notifyProjectF } = require('../utils/securityUtils');
+const jwtAuthHandler = require('../utils/jwtAuthHandler');
+const authenticateToken = require('../middleware/authenticateToken');
 
 const router = express.Router();
+const PROJECT_F_URL = process.env.PROJECT_F_URL || 'http://localhost:3006';
 
 // ===============================
-// AUTH ROUTES
+// Authentication Routes
 // ===============================
 
 /**
- * Sign Up a new user.
+ * Sign Up a new user
  */
 router.post('/auth/signup', async (req, res) => {
     try {
@@ -43,16 +47,15 @@ router.post('/auth/signup', async (req, res) => {
 });
 
 /**
- * Log in an existing user.
+ * Login user and create JWT token
  */
 router.post('/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
         }
-
-        console.log('Login attempt for email:', email);
 
         const user = await pool.query(
             'SELECT * FROM user_auth WHERE email = $1',
@@ -60,28 +63,24 @@ router.post('/auth/login', async (req, res) => {
         );
 
         if (user.rows.length === 0) {
-            console.log('No user found for email:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
         if (!validPassword) {
-            console.log('Invalid password for user:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const token = jwt.sign(
-            {
-                id: user.rows[0].id,
-                username: user.rows[0].username,
-                email: user.rows[0].email,
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+        // Create JWT token and track it
+        const { token, tokenId } = await jwtAuthHandler.createToken(user.rows[0], req);
+
+        // Update last login timestamp
+        await pool.query(
+            'UPDATE user_auth SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+            [user.rows[0].id]
         );
 
-        console.log('Generated JWT:', token);
-
+        // Notify Project F
         await notifyProjectF({
             message: `Login successful for user ${user.rows[0].username}`,
             level: 'info',
@@ -89,31 +88,53 @@ router.post('/auth/login', async (req, res) => {
             timestamp: new Date().toISOString(),
         });
 
-        res.json({ token, user: user.rows[0] });
+        res.json({ 
+            token,
+            tokenId,
+            user: {
+                id: user.rows[0].id,
+                username: user.rows[0].username,
+                email: user.rows[0].email
+            }
+        });
+
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 /**
- * Basic status route to check if the Security Service is operational.
+ * Logout user and revoke token
  */
-router.get('/status', (req, res) => {
-    res.json({
-        status: 'active',
-        version: '1.0',
-        message: 'Security Service Z is operational',
-        lastCheck: new Date().toISOString(),
+router.post('/auth/logout', authenticateToken, async (req, res) => {
+    try {
+        const tokenId = req.user.tokenId;
+        await jwtAuthHandler.revokeToken(tokenId, 'User initiated logout');
+        
+        res.json({ message: 'Successfully logged out' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
+});
+
+/**
+ * Verify token validity
+ */
+router.get('/auth/verify', authenticateToken, (req, res) => {
+    res.json({ 
+        valid: true, 
+        user: req.user 
     });
 });
 
 // ===============================
-// SECURITY EVENTS ROUTES
+// Security Event Routes
 // ===============================
 
 /**
- * Fetch recent security events (limit 100).
+ * Fetch recent security events
  */
 router.get('/security/events', async (req, res) => {
     try {
@@ -128,7 +149,7 @@ router.get('/security/events', async (req, res) => {
 });
 
 /**
- * Log a new security event.
+ * Log a new security event
  */
 router.post('/security/events', async (req, res) => {
     const { eventType, details, severity } = req.body;
@@ -145,11 +166,11 @@ router.post('/security/events', async (req, res) => {
 });
 
 // ===============================
-// SECURITY ALERTS ROUTE
+// Security Alerts Routes
 // ===============================
 
 /**
- * Log a security alert.
+ * Log a security alert
  */
 router.post('/security/alerts', async (req, res) => {
     const { alertType, message, severity, sourceIp } = req.body;
@@ -184,11 +205,57 @@ router.post('/security/alerts', async (req, res) => {
 });
 
 // ===============================
-// HEALTH CHECK ROUTE
+// Monitoring Routes
 // ===============================
 
 /**
- * Health endpoint to confirm DB and notifications are operational.
+ * Fetch recent authentication logs
+ */
+router.get('/security/auth-logs', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM auth_logs ORDER BY timestamp DESC LIMIT 100'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching authentication logs:', error);
+        res.status(500).json({ error: 'Failed to fetch authentication logs' });
+    }
+});
+
+/**
+ * Fetch recent suspicious activities
+ */
+router.get('/security/suspicious-activities', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM suspicious_activities ORDER BY timestamp DESC LIMIT 100'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching suspicious activities:', error);
+        res.status(500).json({ error: 'Failed to fetch suspicious activities' });
+    }
+});
+
+// ===============================
+// Health & Status Routes
+// ===============================
+
+/**
+ * Basic service status check
+ */
+router.get('/status', (req, res) => {
+    res.json({
+        status: 'active',
+        version: '1.0',
+        message: 'Security Service Z is operational',
+        lastCheck: new Date().toISOString(),
+    });
+});
+
+/**
+ * Detailed health check
  */
 router.get('/health', async (req, res) => {
     try {
@@ -211,47 +278,12 @@ router.get('/health', async (req, res) => {
 });
 
 // ===============================
-// AUTH LOGS & SUSPICIOUS ACTIVITIES
+// Notification Routes
 // ===============================
 
 /**
- * Fetch recent authentication logs (limit 100).
- * NOTE: Table must exist in the DB with name 'auth_logs'.
+ * Forward notifications to Project F
  */
-router.get('/security/auth-logs', async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT * FROM auth_logs ORDER BY timestamp DESC LIMIT 100'
-        );
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Error fetching authentication logs:', error);
-        res.status(500).json({ error: 'Failed to fetch authentication logs' });
-    }
-});
-
-/**
- * Fetch recent suspicious activities (limit 100).
- * NOTE: Table must exist in the DB with name 'suspicious_activities'.
- */
-router.get('/security/suspicious-activities', async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT * FROM suspicious_activities ORDER BY timestamp DESC LIMIT 100'
-        );
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Error fetching suspicious activities:', error);
-        res.status(500).json({ error: 'Failed to fetch suspicious activities' });
-    }
-});
-
-// ===============================
-// NEW: /api/notify ROUTE
-// FORWARDING TO PROJECT F (IF DESIRED)
-// ===============================
-const PROJECT_F_URL = process.env.PROJECT_F_URL || 'http://localhost:3006';
-
 router.post('/api/notify', async (req, res) => {
     try {
         const { message, level, source, timestamp } = req.body;
@@ -260,15 +292,12 @@ router.post('/api/notify', async (req, res) => {
             return res.status(400).json({ error: 'Message is required.' });
         }
 
-        // Forward to Project F
         const axiosResponse = await axios.post(`${PROJECT_F_URL}/api/notify`, {
             message,
             level: level || 'info',
             source: source || 'Project Z',
             timestamp: timestamp || new Date().toISOString(),
         });
-
-        console.log('Forwarded notification to Project F:', axiosResponse.data);
 
         return res.status(200).json({
             status: 'success',
