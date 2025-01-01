@@ -60,6 +60,14 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshSystemStatus: document.getElementById('refresh-system-status'),
         servicesOnlineCount: document.getElementById('services-online-count'),
 
+        // JWT Token elements
+        tokenActivityLog: document.getElementById('token-activity-log'),
+        refreshTokenActivity: document.getElementById('refresh-token-activity'),
+        tokenFilter: document.getElementById('token-filter'),
+        activeTokensCount: document.getElementById('active-tokens-count'),
+        expiredTokensCount: document.getElementById('expired-tokens-count'),
+
+
         // Navigation
         navLinks: document.querySelectorAll('.nav-menu a'),
 
@@ -169,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             showLoading();
             const events = await fetchWithRetry('/api/security/events');
-            
+
             let filteredEvents = events;
             if (filter !== 'all') {
                 filteredEvents = events.filter(event => event.severity === filter);
@@ -214,11 +222,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <p class="event-message">${event.message || 'No message provided.'}</p>
                     <div class="event-details">
-                        ${
-                            event.details 
-                                ? `<pre>${JSON.stringify(event.details, null, 2)}</pre>` 
-                                : ''
-                        }
+                        ${event.details
+                    ? `<pre>${JSON.stringify(event.details, null, 2)}</pre>`
+                    : ''
+                }
                     </div>
                     <div class="bundle-timestamp">
                         <span class="timestamp-label">Time:</span>
@@ -290,11 +297,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         <strong>IP:</strong> ${log.ip_address || 'N/A'} |
                         <strong>Method:</strong> ${log.auth_method || 'Standard'}
                     </p>
-                    ${
-                        log.details
-                            ? `<pre class="auth-additional-details">${JSON.stringify(log.details, null, 2)}</pre>`
-                            : ''
-                    }
+                    ${log.details
+                    ? `<pre class="auth-additional-details">${JSON.stringify(log.details, null, 2)}</pre>`
+                    : ''
+                }
                     <div class="bundle-timestamp">
                         <span class="timestamp-label">Time:</span>
                         <span class="timestamp-value">${formatTimestamp(log.timestamp)}</span>
@@ -367,11 +373,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="activity-details">
                         <p><strong>Source IP:</strong> ${activity.source_ip || 'N/A'}</p>
                         <p><strong>Target:</strong> ${activity.target || 'N/A'}</p>
-                        ${
-                            activity.details
-                                ? `<pre>${JSON.stringify(activity.details, null, 2)}</pre>`
-                                : ''
-                        }
+                        ${activity.details
+                    ? `<pre>${JSON.stringify(activity.details, null, 2)}</pre>`
+                    : ''
+                }
                     </div>
                     <div class="bundle-timestamp">
                         <span class="timestamp-label">Detected:</span>
@@ -451,6 +456,101 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update "Services Online" count
         elements.servicesOnlineCount.textContent = `${onlineCount}/${serviceNames.length}`;
     }
+
+    // ===============================
+    // JWT Token Activity Monitoring
+    // ===============================
+
+    /**
+     * Fetches and displays JWT token activity.
+     * @param {string} filter - Filter by status (e.g. "active", "expired", "revoked").
+     */
+    async function refreshTokenActivity(filter = 'all') {
+        try {
+            showLoading();
+            const tokens = await fetchWithRetry('/api/security/token-activity');
+
+            let filteredTokens = tokens;
+            if (filter !== 'all') {
+                filteredTokens = tokens.filter(token => {
+                    switch (filter) {
+                        case 'active':
+                            return !token.is_revoked && new Date(token.expires_at) > new Date();
+                        case 'expired':
+                            return !token.is_revoked && new Date(token.expires_at) <= new Date();
+                        case 'revoked':
+                            return token.is_revoked;
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            updateTokenActivityUI(filteredTokens);
+            updateTokenStatistics(tokens);
+
+        } catch (error) {
+            console.error('Error refreshing token activity:', error);
+            if (elements.tokenActivityLog) {
+                elements.tokenActivityLog.innerHTML = 'Failed to load token activity.';
+            }
+            await notifyError('Token Activity Refresh Failed', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    /**
+     * Updates the UI with token activity data.
+     * @param {Array} tokens
+     */
+    function updateTokenActivityUI(tokens) {
+        if (!elements.tokenActivityLog) return;
+        elements.tokenActivityLog.innerHTML = '';
+
+        tokens.forEach(token => {
+            const tokenDiv = document.createElement('div');
+            const status = token.is_revoked ? 'revoked' :
+                (new Date(token.expires_at) > new Date() ? 'active' : 'expired');
+
+            tokenDiv.classList.add('bundle-row', `token-${status}`);
+
+            tokenDiv.innerHTML = `
+            <div class="bundle-content">
+                <div class="token-header">
+                    <span class="token-id">Token: ${token.token_id.substr(0, 8)}...</span>
+                    <span class="status-badge ${status}">${status.toUpperCase()}</span>
+                </div>
+                <div class="token-details">
+                    <p><strong>User:</strong> ${token.username || 'Unknown'}</p>
+                    <p><strong>Issued:</strong> ${formatTimestamp(token.issued_at)}</p>
+                    <p><strong>Expires:</strong> ${formatTimestamp(token.expires_at)}</p>
+                    ${token.last_used_at ? `<p><strong>Last Used:</strong> ${formatTimestamp(token.last_used_at)}</p>` : ''}
+                    ${token.is_revoked ? `<p><strong>Revoked:</strong> ${formatTimestamp(token.revoked_at)} (${token.revocation_reason})</p>` : ''}
+                    <p><strong>IP:</strong> ${token.ip_address || 'N/A'}</p>
+                </div>
+            </div>
+        `;
+
+            elements.tokenActivityLog.appendChild(tokenDiv);
+        });
+    }
+
+    /**
+     * Updates token statistics.
+     * @param {Array} tokens
+     */
+    function updateTokenStatistics(tokens) {
+        if (!elements.activeTokensCount || !elements.expiredTokensCount) return;
+
+        const now = new Date();
+        const active = tokens.filter(t => !t.is_revoked && new Date(t.expires_at) > now).length;
+        const expired = tokens.filter(t => !t.is_revoked && new Date(t.expires_at) <= now).length;
+
+        elements.activeTokensCount.textContent = active;
+        elements.expiredTokensCount.textContent = expired;
+    }
+
 
     // ===============================
     // Statistics Updates
@@ -656,6 +756,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 refreshSecurityEvents(elements.eventFilter.value);
                 refreshAuthLogs(elements.authFilter.value);
                 refreshSuspiciousActivities(elements.threatFilter.value);
+                refreshTokenActivity(elements.tokenFilter.value);  // Add this line
             }
         }, REFRESH_INTERVAL);
     }
@@ -674,7 +775,8 @@ document.addEventListener('DOMContentLoaded', function () {
             await Promise.all([
                 refreshSecurityEvents(),
                 refreshAuthLogs(),
-                refreshSuspiciousActivities()
+                refreshSuspiciousActivities(),
+                refreshTokenActivity()
             ]);
 
             // Start the auto-refresh cycle
@@ -695,6 +797,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===============================
     // Event Listeners for Filters and Refresh Buttons
     // ===============================
+
+    if (elements.tokenFilter) {
+        elements.tokenFilter.addEventListener('change', e =>
+            refreshTokenActivity(e.target.value)
+        );
+    }
+
+    if (elements.refreshTokenActivity) {
+        elements.refreshTokenActivity.addEventListener('click', () =>
+            refreshTokenActivity(elements.tokenFilter.value)
+        );
+    }
+
+
     if (elements.eventFilter) {
         elements.eventFilter.addEventListener('change', e =>
             refreshSecurityEvents(e.target.value)

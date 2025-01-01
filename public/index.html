@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <title>_PROJECT-Z:SECURITY</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <header>
         <h1>_PROJECT-Z | Security</h1>
@@ -51,7 +53,7 @@
                 No events yet. Click "Refresh Events" to load data.
             </div>
         </div>
-        
+
         <!-- Section 2: Authentication Logs -->
         <div class="grid-item" id="auth-logs-section">
             <h2>Authentication Logs</h2>
@@ -73,7 +75,7 @@
                 No logs yet. Click "Refresh Logs" to load data.
             </div>
         </div>
-        
+
         <!-- Section 3: Suspicious Activities -->
         <div class="grid-item" id="suspicious-activities-section">
             <h2>Suspicious Activities</h2>
@@ -114,7 +116,36 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Section 5: JWT Token Activity -->
+        <div class="grid-item" id="jwt-activity-section">
+            <h2>JWT Token Activity</h2>
+            <div class="control-panel">
+                <div class="status-indicators">
+                    <span class="token-count">
+                        Active Tokens: <span id="active-tokens-count">0</span>
+                    </span>
+                    <span class="token-expired">
+                        Expired Tokens: <span id="expired-tokens-count">0</span>
+                    </span>
+                </div>
+                <div class="refresh-controls">
+                    <select id="token-filter" class="token-filter">
+                        <option value="all">All Tokens</option>
+                        <option value="active">Active</option>
+                        <option value="expired">Expired</option>
+                        <option value="revoked">Revoked</option>
+                    </select>
+                    <div id="refresh-token-activity" class="Button-Refresh">Refresh Tokens</div>
+                </div>
+            </div>
+            <div class="DBContents" id="token-activity-log">
+                No token activity yet. Click "Refresh Tokens" to load data.
+            </div>
+        </div>
+
+
+
     </main>
 
     <footer>
@@ -126,8 +157,9 @@
     </footer>
 
     <div class="loading">Loading...</div>
-    
+
     <!-- Main JavaScript for Security Monitoring -->
     <script src="js/main.js"></script>
 </body>
+
 </html>
