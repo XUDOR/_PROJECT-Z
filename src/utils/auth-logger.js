@@ -1,7 +1,5 @@
 // auth-logger.js
 
-// auth-logger.js - Add to Project Z's utils folder
-
 const pool = require('../db/db');
 const { notifyProjectF } = require('./securityUtils');
 
@@ -55,17 +53,21 @@ async function logAuthActivity(type, details, severity = 'info') {
  */
 async function logJWTActivity(tokenId, action, details) {
     try {
+        // Insert into auth_logs table instead of jwt_activity
         const query = `
-            INSERT INTO jwt_activity
-            (token_id, action, user_id, details, timestamp)
-            VALUES ($1, $2, $3, $4, NOW())
+            INSERT INTO auth_logs 
+            (jwt_id, activity_type, user_id, username, ip_address, details, severity)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
         
         await pool.query(query, [
             tokenId,
-            action,
+            `JWT_${action}`,
             details.userId,
-            JSON.stringify(details)
+            details.username,
+            details.ipAddress,
+            JSON.stringify(details),
+            'info'
         ]);
 
         // Notify Project F about JWT activity
