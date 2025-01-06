@@ -81,6 +81,12 @@ main {
   padding: 2rem;
 }
 
+.titleTag {
+  font-weight: lighter;
+}
+
+
+
 /* =============================== */
 /* Grid System */
 /* =============================== */
