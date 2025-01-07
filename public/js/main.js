@@ -552,6 +552,68 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+//=================== FILE SCAN UI
+
+/**
+ * Add a new scan log entry to the scan activity section.
+ * @param {string} message - The log message to display.
+ * @param {string} status - The status of the scan (success or failure).
+ */
+function addScanLog(message, status) {
+    const scanLog = document.getElementById('scan-activity-log');
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `${new Date().toLocaleString()}: ${message}`;
+    logEntry.classList.add(status === 'success' ? 'log-success' : 'log-failure');
+
+    scanLog.appendChild(logEntry);
+    scanLog.scrollTop = scanLog.scrollHeight; // Scroll to the latest log
+}
+
+/**
+ * Fetch scan activity data from the server and update the UI.
+ */
+async function fetchScanActivity() {
+    try {
+        const response = await fetch('/api/activity-logs');
+        const data = await response.json();
+
+        const scanLog = document.getElementById('scan-activity-log');
+        const successCount = document.getElementById('successful-scans-count');
+        const failureCount = document.getElementById('failed-scans-count');
+
+        scanLog.innerHTML = ''; // Clear existing logs
+        let success = 0;
+        let failure = 0;
+
+        data.logs.forEach((log) => {
+            addScanLog(log.message, log.status);
+            if (log.status === 'success') success++;
+            else failure++;
+        });
+
+        successCount.textContent = success;
+        failureCount.textContent = failure;
+    } catch (error) {
+        console.error('Error fetching scan activity:', error);
+    }
+}
+
+// Event listener for refreshing scan activity
+document.getElementById('refresh-scan-activity').addEventListener('click', fetchScanActivity);
+
+
+
+router.get('/api/scans/logs', async (req, res) => {
+    try {
+        const logs = await pool.query('SELECT * FROM scan_logs ORDER BY timestamp DESC LIMIT 50');
+        res.status(200).json({ success: true, logs: logs.rows });
+    } catch (error) {
+        console.error('Error fetching scan logs:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch scan logs' });
+    }
+});
+
+
     // ===============================
     // Statistics Updates
     // ===============================
@@ -850,6 +912,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (elements.refreshSystemStatus) {
         elements.refreshSystemStatus.addEventListener('click', checkSystemStatus);
     }
+
+
+
 
     // ===============================
     // Start the Application

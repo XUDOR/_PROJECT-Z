@@ -2,6 +2,8 @@
 
 require('dotenv').config();
 const express = require('express');
+
+const { scanFile } = require('../services/scan'); // Import the scanning function
 const bcrypt = require('bcrypt');
 const axios = require('axios');
 const pool = require('../db/db');
@@ -11,6 +13,39 @@ const authenticateToken = require('../middleware/authenticateToken');
 
 const router = express.Router();
 const PROJECT_F_URL = process.env.PROJECT_F_URL || 'http://localhost:3006';
+
+//=====================
+//     SCAN function //
+//====================
+
+
+// Scan Endpoint
+router.post('/api/scan', async (req, res) => {
+    try {
+        const { filePath, metadata } = req.body;
+
+        // Validate inputs
+        if (!filePath || !metadata) {
+            return res.status(400).json({ success: false, error: 'Invalid request. filePath and metadata are required.' });
+        }
+
+        // Call the scanning function
+        const scanResult = await scanFile(filePath, metadata);
+
+        if (!scanResult.success) {
+            return res.status(400).json({ success: false, error: scanResult.error });
+        }
+
+        res.json({ success: true, message: 'File scanned successfully.' });
+    } catch (error) {
+        console.error('Error in /api/scan:', error.message);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+});
+
+
+
+
 
 // ===============================
 // Authentication Routes
