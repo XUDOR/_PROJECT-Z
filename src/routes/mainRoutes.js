@@ -20,7 +20,7 @@ const PROJECT_F_URL = process.env.PROJECT_F_URL || 'http://localhost:3006';
 
 
 // Scan Endpoint
-router.post('/api/scan', async (req, res) => {
+router.post('/scan', async (req, res) => {
     try {
         const { filePath, metadata } = req.body;
 
